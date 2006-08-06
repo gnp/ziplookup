@@ -16,39 +16,35 @@ the U.S. Postal Service's web site:
 
 http://www.usps.com/zip4/
 
-  #!/usr/bin/perl
-  
-  use Scrape::USPS::ZipLookup::Address;
-  use Scrape::USPS::ZipLookup;
-  
-  my $addr = Scrape::USPS::ZipLookup::Address->new(
-    'Focus Research, Inc.',                # Firm
-    '',                                    # Urbanization
-    '8080 Beckett Center Drive Suite 203', # Delivery Address
-    'West Chester',                        # City
-    'OH',                                  # State
-    '45069-5001'                           # ZIP Code
-  );
-  
-  my $zlu = Scrape::USPS::ZipLookup->new();
-  
-  my @matches = $zlu->std_addr($addr);
-  
-  if (@matches) {
-    printf "\n%d matches:\n", scalar(@matches);
-    foreach my $match (@matches) {
-      print "-" x 39, "\n";
-      print $match->to_string;
-      print "\n";
+  #! ruby
+  require "USPS/zip_lookup"
+  require "USPS/address"
+
+  delivery_address = "6216 Eddington Drive"
+  city = "Middletown"
+  state = "OH"
+
+  address = USPS::Address.new
+  address.delivery_address = delivery_address
+  address.city = city
+  address.state = state
+
+  zlu = USPS::ZipLookup.new()
+
+  matches = zlu.std_addr(address)
+
+  if matches != nil && matches.size > 0
+    printf "\n%d matches:\n", matches.size
+    matches.each { |match|
+      print "-" * 39, "\n"
+      print match.to_dump
+      print "\n"
     }
-    print "-" x 39, "\n";
-  }
-  else {
-    print "No matches!\n";
-  }
-  
-  exit 0;
-  
+    print "-" * 39, "\n"
+  else
+    print "No matches!\n"
+  end
+
 == Description
 
 The United States Postal Service (USPS) has on its web site an HTML form at
@@ -58,7 +54,7 @@ city, state, and zip, it will put the address into standard form (provided
 the address is in their database) and display a page with the resulting
 address.
 
-This Perl module provides a programmatic interface to this service, so you
+This Ruby module provides a programmatic interface to this service, so you
 can write a program to process your entire personal address book without
 having to manually type them all in to the form.
 
@@ -71,7 +67,7 @@ discover that the service has changed, please email the author your findings.
 If an error occurs in trying to standardize the address, then no array
 will be returned. Otherwise, a four-element array will be returned.
 
-To see debugging output, call C<< $zlu->verbose(1) >>.
+To see debugging output, set zlu.verbose = true
 
 
 == Fields
@@ -142,34 +138,12 @@ modify it under the same terms as Ruby itself.
 
 =end
 
-require 'mechanize'
-
-#  agent = WWW::Mechanize.new
-#  page = agent.get('http://rubyforge.org/')
-#  link = page.links.text(/Log In/).first
-#  page = agent.click(link)
-#  form = page.forms[1]
-#  form.form_loginname = ARGV[0]
-#  form.form_pw = ARGV[1]
-#  page = agent.submit(form, form.buttons.first)
-#
-#  puts page.body
-
-class String
-  def super_trim
-    temp = self.dup
-#    dup.gsub(/\x{a0}/m, ' ')   # Remove this odd character.
-    dup.gsub(/^\s+/m, '')      # Trim leading whitespace.
-    dup.gsub(/\s+$/m, '')      # Trim trailing whitespace.
-    dup.gsub(/\s+/m, ' ')      # Coalesce interior whitespace.
-    return dup;
-  end
-end
+#require 'mechanize'
 
 module USPS
 
 class ZipLookup
-#  @@VERSION = '2.5'
+#  @@VERSION = '1.0'
   @@usps_host = 'zip4.usps.com'
   
   @@start_path = '/zip4/welcome.jsp'
@@ -185,7 +159,7 @@ class ZipLookup
   attr_writer :verbose
   
   def initialize
-    @user_agent = WWW::Mechanize.new
+#    @user_agent = WWW::Mechanize.new
     @verbose = false
   end
   
@@ -203,71 +177,6 @@ class ZipLookup
     }
     
     return result
-  end
-
-  def form_submit(addr)
-    response = @user_agent.get(@@start_url)
-
-    raise "Error communicating with server" if response == nil
-
-    content = response.body
-
-    if @verbose
-      print "-" * 79, "\n"
-      print "Initial Page HTTP Response:\n"
-      print content
-    end
-
-    form = response.forms[@@form_number] # Really want to use @@form_name!!!
-  
-    form.field('address1').value   = addr.delivery_address.upcase
-    form.field('city').value       = addr.city.upcase
-    form.field('state').value      = addr.state.upcase
-    form.field('zip5').value	    = addr.zip_code == nil ? nil : addr.zip_code.upcase
-    form.field('visited').value    = '1' # NOTE: WWW::Mechanize pukes if this doesn't have quotes. It isn't smart enough to convert to String on its own!
-    form.field('pagenumber').value = 'all'
-    form.field('firmname').value    = ''
-  
-    response = @user_agent.submit(form)
-  
-    raise "Error communicating with server" if response == nil
-
-    content = response.body
-  
-    if @verbose
-      print "-" * 79, "\n"
-      print "Form Submit HTTP Response:\n"
-      print content
-    end
-    
-    return response.body
-  end
-  
-  def direct_post(addr)
-    request_body = addr.query_string
-    
-    require 'net/http'
-    
-    content = nil
-    
-#   post_headers = { 'Referer' => @@start_url, 'Content-Type' => 'application/x-www-form-urlencoded' }
-    post_headers = { }
-       
-    session = Net::HTTP.new(@@usps_host)
-    (response, content) = session.post(@@post_path, request_body, post_headers)
-        
-    if @verbose
-      print "-" * 79, "\n"
-      printf "Direct HTTP POST (to http://%s%s) Body:\n", @@usps_host, @@post_path
-      print request_body, "\n"
-      print "HTTP Response:\n"
-      print content
-    end
-
-    return content
-  rescue WWW::Mechanize::ResponseCodeError => error
-    printf "Unhandled response: %s\n", error.response_code
-    raise
   end
     
   def direct_get(addr)
@@ -313,20 +222,7 @@ class ZipLookup
       print "\n"
     end
 
-    #
-    # Submit the form to the USPS web server:
-    #
-    # Unless we are in verbose mode, we make the WWW::Mechanize user agent be
-    # quiet. At the time this was written [2003-01-28], it generates a warning
-    # about the "address" form field being read-only if its not in quiet mode.
-    #
-    # We set the form's Selection field to "1" to indicate that we are doing
-    # regular zip code lookup.
-    #
-
     content = direct_get(addr)
-#    content = direct_post(addr)
-#    content = form_submit(addr)
 
     #
     # Time to Parse:
@@ -358,13 +254,8 @@ class ZipLookup
     content.gsub!(Regexp.new('[\cI\cJ\cM]'), '')
     content.squeeze!(" ")
     content.strip!
-
-#    print content
     
     raw_matches = content.scan(%r{<td headers="\w+" height="34" valign="top" class="main" style="background:url\(images/table_gray\.gif\); padding:5px 10px;">(.*?)>Mailing Industry Information</a>}mi)
-#   raw_matches = content.scan(Regexp.new('mailing'))
-
-#    print "Raw matches: ", raw_matches.size, "\n"
   
     raw_matches.each { |raw_match|
       if @verbose
@@ -374,8 +265,6 @@ class ZipLookup
       end
       
       match = parse_match(raw_match[0])
-  
-#      print "Got match: ", match.to_s(), "\n"
       
       matches.push(match)
     }
@@ -503,8 +392,6 @@ class ZipLookup
       print "\n";
     end
 
-#    print "Creating instance...\n"
-
     match = USPS::Address.new
 
     match.delivery_address = address
@@ -528,8 +415,6 @@ class ZipLookup
     match.default_address  = default_address
     match.early_warning    = early_warning
     match.valid            = valid
-    
-#    print "Returning...\n"
     
     return match
   end # method parse_match
