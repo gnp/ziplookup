@@ -94,7 +94,7 @@ Detailed information (see the U.S. Postal Service web site for definitions at
 L<http://zip4.usps.com/zip4/pu_mailing_industry_def.htm>):
 
 = History
-$Id: $ 
+$Id$ 
 
 = TERMS OF USE
 

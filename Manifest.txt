@@ -1,0 +1,9 @@
+.project
+bin/tryme.rb
+lib/USPS/address.rb
+lib/USPS/zip_lookup.rb
+Manifest.txt
+Rakefile
+test/tc_address.rb
+test/tc_standardize.rb
+test/ts_zip_lookup.rb

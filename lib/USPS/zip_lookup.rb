@@ -124,7 +124,7 @@ address when I document the changes and contributions to the release. Typically
 I put this information in the CHANGES file.
 
 = History
-$Id: $ 
+$Id$ 
 
 = Author
 

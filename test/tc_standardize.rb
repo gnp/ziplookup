@@ -3,7 +3,7 @@ $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 # Copyright (C) 2006 Gregor N. Purdy. All rights reserved.
 # This program is free software. It is subject to the same license as Ruby.
 #
-# [ $Id: $ ]
+# [ $Id$ ]
 #
 
 require 'test/unit'
